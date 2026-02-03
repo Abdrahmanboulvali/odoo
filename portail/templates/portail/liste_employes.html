@@ -1,0 +1,100 @@
+{% extends "portail/base.html" %}
+
+{% block title %}Employés{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="fw-bold mb-0">Liste des employés</h3>
+      <div class="text-muted">Données synchronisées depuis Odoo</div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table id="employeesTable" class="table table-striped table-hover align-middle" style="width:100%">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Nom</th>
+          <th>Poste</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Département</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in employes %}
+          <tr>
+            <td>{{ e.id }}</td>
+            <td class="fw-semibold">{{ e.name }}</td>
+            <td>
+              {% if e.job_title %}
+                {{ e.job_title }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.work_email %}
+                {{ e.work_email }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.work_phone %}
+                {{ e.work_phone }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.department_id %}
+                {{ e.department_id.1 }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+            <!-- ✅ Nouvelle colonne Action -->
+            <td>
+              <a class="btn btn-sm btn-outline-primary" href="/employes/{{ e.id }}/">
+                Voir
+              </a>
+            </td>
+
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    new DataTable('#employeesTable', {
+      responsive: true,
+      pageLength: 10,
+      lengthMenu: [5, 10, 25, 50, 100],
+      order: [[1, 'asc']],
+      language: {
+        url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/fr-FR.json"
+      },
+      layout: {
+        topStart: {
+          buttons: [
+            { extend: 'copy', text: 'Copier' },
+            { extend: 'excel', text: 'Excel' },
+            { extend: 'pdf', text: 'PDF' },
+            { extend: 'print', text: 'Imprimer' }
+          ]
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "portail/base.html" %}
+{% block title %}Allocations{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="fw-bold mb-0">Liste des allocations</h3>
+      <div class="text-muted">Attributions enregistrées dans Odoo</div>
+    </div>
+
+    <a href="{% url 'creer_allocation' %}" class="btn btn-primary">
+      + Nouvelle attribution
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table id="allocTable" class="table table-striped table-hover align-middle" style="width:100%">
+      <thead class="table-light">
+        <tr>
+          <th style="width:70px;">ID</th>
+          <th>Employé</th>
+          <th>Type</th>
+          <th style="width:90px;">Jours</th>
+          <th style="width:120px;">État</th>
+          <th style="width:180px;">Date création</th>
+          <th style="width:180px;">Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for a in allocations %}
+          <tr>
+            <td class="fw-semibold">{{ a.id }}</td>
+
+            <td>
+              {% if a.employee_id %}
+                {{ a.employee_id.1 }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if a.holiday_status_id %}
+                {{ a.holiday_status_id.1 }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+            <td class="text-center">
+              {% if a.number_of_days %}
+                {{ a.number_of_days|floatformat:"-2" }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {# تحسين ألوان الحالات #}
+              {% if a.state == "draft" %}
+                <span class="badge bg-secondary">draft</span>
+              {% elif a.state == "confirm" %}
+                <span class="badge bg-warning text-dark">confirm</span>
+              {% elif a.state == "validate" or a.state == "validated" %}
+                <span class="badge bg-success">validated</span>
+              {% elif a.state == "refuse" %}
+                <span class="badge bg-danger">refused</span>
+              {% else %}
+                <span class="badge bg-dark">{{ a.state }}</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if a.create_date %}
+                {{ a.create_date }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+            <td class="text-center">
+              {% if a.state == "confirm" or a.state == "draft" %}
+                <div class="d-inline-flex gap-2">
+                  <form method="post" action="{% url 'approve_allocation' a.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-success px-3">
+                      Approuver
+                    </button>
+                  </form>
+
+                  <form method="post" action="{% url 'refuse_allocation' a.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-danger px-3">
+                      Refuser
+                    </button>
+                  </form>
+                </div>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted">Aucune attribution trouvée.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function () {
+    new DataTable('#allocTable', {
+      responsive: true,
+      pageLength: 10,
+      lengthMenu: [5, 10, 25, 50, 100],
+      order: [[0, 'desc']],
+      language: {
+        url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/fr-FR.json"
+      },
+      columnDefs: [
+        { orderable: false, targets: [6] } // تعطيل الترتيب في عمود Action
+      ],
+      layout: {
+        topStart: {
+          buttons: [
+            { extend: 'copy', text: 'Copier' },
+            { extend: 'excel', text: 'Excel' },
+            { extend: 'pdf', text: 'PDF' },
+            { extend: 'print', text: 'Imprimer' }
+          ]
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

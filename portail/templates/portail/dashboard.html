@@ -1,0 +1,109 @@
+{% extends "portail/base.html" %}
+{% block title %}Dashboard RH{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <div class="mb-3">
+    <h3 class="fw-bold mb-0">Dashboard RH</h3>
+    <div class="text-muted">Vue globale des ressources humaines (Odoo RPC)</div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card shadow-sm p-3">
+        <div class="text-muted">Employés</div>
+        <div class="fs-3 fw-bold">{{ total_employes }}</div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm p-3">
+        <div class="text-muted">Congés en attente</div>
+        <div class="fs-3 fw-bold text-warning">{{ conges_en_attente }}</div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm p-3">
+        <div class="text-muted">Congés approuvés</div>
+        <div class="fs-3 fw-bold text-success">{{ conges_approuves }}</div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm p-3">
+        <div class="text-muted">Allocations en attente</div>
+        <div class="fs-3 fw-bold text-primary">{{ allocs_en_attente }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables -->
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h5 class="fw-bold">Dernières demandes de congés</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Employé</th>
+                <th>Type</th>
+                <th>État</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for l in derniers_conges %}
+              <tr>
+                <td>{{ l.id }}</td>
+                <td>{% if l.employee_id %}{{ l.employee_id.1 }}{% endif %}</td>
+                <td>{% if l.holiday_status_id %}{{ l.holiday_status_id.1 }}{% endif %}</td>
+                <td><span class="badge bg-secondary">{{ l.state }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-muted text-center">Aucune donnée</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <a href="/conges/" class="btn btn-sm btn-outline-dark mt-2">Voir tout</a>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h5 class="fw-bold">Dernières allocations</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Employé</th>
+                <th>Type</th>
+                <th>Jours</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in dernieres_allocs %}
+              <tr>
+                <td>{{ a.id }}</td>
+                <td>{% if a.employee_id %}{{ a.employee_id.1 }}{% endif %}</td>
+                <td>{% if a.holiday_status_id %}{{ a.holiday_status_id.1 }}{% endif %}</td>
+                <td>{{ a.number_of_days }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-muted text-center">Aucune donnée</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <a href="/allocations/" class="btn btn-sm btn-outline-dark mt-2">Voir tout</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

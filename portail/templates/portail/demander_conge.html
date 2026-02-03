@@ -1,0 +1,66 @@
+{% extends "portail/base.html" %}
+{% block title %}Demande de congé{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="fw-bold mb-0">Nouvelle demande de congé</h3>
+      <div class="text-muted">Créer une demande (Odoo)</div>
+    </div>
+
+    <a href="{% url 'liste_conges' %}" class="btn btn-outline-secondary">
+      ← Retour
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Employé</label>
+      {{ form.employee_id }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Type de congé</label>
+      {{ form.leave_type_id }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Date début</label>
+      {{ form.date_from }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Date fin</label>
+      {{ form.date_to }}
+    </div>
+
+    <div class="col-12">
+      <label class="form-label fw-semibold">Motif</label>
+      {{ form.reason }}
+    </div>
+
+    <div class="col-12 d-flex gap-2 mt-2">
+      <button class="btn btn-primary">Envoyer</button>
+
+      <!-- ✅ زر مهم لحل مشكلة Fault (Allocation) -->
+      <a href="{% url 'creer_allocation' %}" class="btn btn-warning">
+        + Créer une attribution (Allocation)
+      </a>
+    </div>
+
+  </form>
+
+</div>
+{% endblock %}
