@@ -9,6 +9,13 @@
       <h3 class="fw-bold mb-0">Liste des employés</h3>
       <div class="text-muted">Données synchronisées depuis Odoo</div>
     </div>
+
+
+    {% if request.user.is_staff %}
+      <a class="btn btn-primary" href="{% url 'creer_employe_et_compte' %}">
+        + Créer employé + compte
+      </a>
+    {% endif %}
   </div>
 
   <div class="table-responsive">

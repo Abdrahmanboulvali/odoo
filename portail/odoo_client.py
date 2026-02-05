@@ -185,3 +185,48 @@ def refuse_allocation(allocation_id):
         "hr.leave.allocation", "action_refuse",
         [[int(allocation_id)]]
     )
+
+
+def create_employee(
+    name: str,
+    work_email: str = "",
+    work_phone: str = "",
+    job_id: int | None = None,
+    department_id: int | None = None
+):
+    uid = odoo_login()
+    models = odoo_models()
+
+    vals = {"name": name}
+
+    if work_email:
+        vals["work_email"] = work_email
+    if work_phone:
+        vals["work_phone"] = work_phone
+
+
+    if job_id:
+        vals["job_id"] = int(job_id)
+
+    if department_id:
+        vals["department_id"] = int(department_id)
+
+    emp_id = models.execute_kw(
+        ODOO_DB, uid, ODOO_PASSWORD,
+        "hr.employee", "create",
+        [vals]
+    )
+    return emp_id
+
+
+def get_jobs():
+    uid = odoo_login()
+    models = odoo_models()
+
+    jobs = models.execute_kw(
+        ODOO_DB, uid, ODOO_PASSWORD,
+        "hr.job", "search_read",
+        [[["active", "=", True]]],
+        {"fields": ["id", "name"], "limit": 500, "order": "name asc"}
+    )
+    return jobs

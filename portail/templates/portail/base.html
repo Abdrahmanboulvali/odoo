@@ -16,15 +16,9 @@
 
   <style>
     body { background:#f6f7fb; }
-
     .navbar { background:#3f51b5; }
     .navbar-brand { font-weight:800; letter-spacing:.3px; }
-
-    .card {
-      border:0;
-      border-radius:16px;
-      box-shadow:0 8px 22px rgba(0,0,0,.06);
-    }
+    .card { border:0; border-radius:16px; box-shadow:0 8px 22px rgba(0,0,0,.06); }
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -35,8 +29,11 @@
 <nav class="navbar navbar-dark navbar-expand-lg">
   <div class="container">
 
-    <!-- Brand -->
-    <a class="navbar-brand" href="{% url 'dashboard' %}">Portail RH</a>
+    <!-- Brand: حسب الدور -->
+    <a class="navbar-brand"
+       href="{% if request.user.is_authenticated %}{% if request.user.is_staff %}{% url 'dashboard' %}{% else %}{% url 'employee_home' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
+      Portail RH
+    </a>
 
     <!-- Button Mobile -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarRH">
@@ -46,28 +43,53 @@
     <!-- Links -->
     <div class="collapse navbar-collapse" id="navbarRH">
 
-      
       {% if request.user.is_authenticated %}
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        {% if request.user.is_staff %}
+          <!-- ✅ روابط المدير فقط -->
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'liste_employes' %}">Employés</a>
-          </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'liste_employes' %}">Employés</a>
+            </li>
 
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'liste_conges' %}">Congés</a>
-          </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'liste_conges' %}">Congés</a>
+            </li>
 
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'liste_allocations' %}">Allocations</a>
-          </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'liste_allocations' %}">Allocations</a>
+            </li>
 
-        </ul>
+            <!-- زر إنشاء موظف/حساب -->
+            <li class="nav-item ms-lg-2">
+              <a class="btn btn-outline-light btn-sm mt-2 mt-lg-0"
+                 href="{% url 'creer_employe_et_compte' %}">
+                + Créer employé
+              </a>
+            </li>
+          </ul>
+
+        {% else %}
+          <!-- ✅ روابط العامل فقط -->
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'employee_home' %}">Mon espace</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'demander_conge' %}">Demander congé</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'mes_conges' %}">Mes congés</a>
+            </li>
+          </ul>
+        {% endif %}
+
       {% else %}
+        <!-- قبل الدخول: اليسار فارغ -->
         <div class="me-auto"></div>
       {% endif %}
 
-      <!-- Right Side (Logout/Login) -->
+      <!-- Right Side -->
       <div class="d-flex gap-2">
         {% if request.user.is_authenticated %}
           <span class="text-white small align-self-center">
@@ -78,7 +100,9 @@
             Logout
           </a>
         {% else %}
-        
+          <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm">
+            Login
+          </a>
         {% endif %}
       </div>
 
@@ -86,7 +110,6 @@
 
   </div>
 </nav>
-
 
 <div class="container my-4">
 
@@ -102,7 +125,6 @@
 
   {% block content %}{% endblock %}
 </div>
-
 
 <!-- JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

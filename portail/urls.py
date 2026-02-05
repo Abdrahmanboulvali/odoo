@@ -21,4 +21,10 @@ urlpatterns = [
     path("allocations/<int:allocation_id>/approve/", views.approuver_allocation, name="approve_allocation"),
     path("allocations/<int:allocation_id>/refuse/", views.refuser_allocation, name="refuse_allocation"),
 
+    path("accounts/force-password/", views.force_password_change, name="force_password_change"),
+    path("employes/nouveau/", views.creer_employe_et_compte, name="creer_employe_et_compte"),
+    path("employee/", views.employee_home, name="employee_home"),
+    path("mes-conges/", views.mes_conges, name="mes_conges"),
+
+
 ]

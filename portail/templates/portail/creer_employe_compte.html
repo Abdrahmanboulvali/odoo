@@ -1,0 +1,42 @@
+{% extends "portail/base.html" %}
+{% block title %}Créer employé{% endblock %}
+
+{% block content %}
+<div class="card p-4" style="max-width:720px;margin:auto;">
+  <h3 class="fw-bold mb-3">Créer un employé + compte portail</h3>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <label class="form-label">Nom complet *</label>
+      <input class="form-control" name="name" required>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Email</label>
+        <input class="form-control" name="work_email" type="email">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Téléphone</label>
+        <input class="form-control" name="work_phone">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Poste</label>
+      <select class="form-select" name="job_id">
+        <option value="">— Sélectionner —</option>
+        {% for val, label in form.fields.job_id.choices %}
+          <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+
+    <button class="btn btn-primary">Créer</button>
+    <a class="btn btn-light" href="{% url 'liste_employes' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

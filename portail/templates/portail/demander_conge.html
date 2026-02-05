@@ -10,9 +10,15 @@
       <div class="text-muted">Créer une demande (Odoo)</div>
     </div>
 
-    <a href="{% url 'liste_conges' %}" class="btn btn-outline-secondary">
-      ← Retour
-    </a>
+    {% if is_manager %}
+      <a href="{% url 'liste_conges' %}" class="btn btn-outline-secondary">
+        ← Retour
+      </a>
+    {% else %}
+      <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+        ← Retour
+      </a>
+    {% endif %}
   </div>
 
   {% if messages %}
@@ -26,10 +32,18 @@
   <form method="post" class="row g-3">
     {% csrf_token %}
 
-    <div class="col-md-6">
-      <label class="form-label fw-semibold">Employé</label>
-      {{ form.employee_id }}
-    </div>
+
+    {% if is_manager %}
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Employé</label>
+        {{ form.employee_id }}
+      </div>
+    {% else %}
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Employé</label>
+        <input class="form-control" value="Moi" disabled>
+      </div>
+    {% endif %}
 
     <div class="col-md-6">
       <label class="form-label fw-semibold">Type de congé</label>
@@ -54,10 +68,12 @@
     <div class="col-12 d-flex gap-2 mt-2">
       <button class="btn btn-primary">Envoyer</button>
 
-      <!-- ✅ زر مهم لحل مشكلة Fault (Allocation) -->
-      <a href="{% url 'creer_allocation' %}" class="btn btn-warning">
-        + Créer une attribution (Allocation)
-      </a>
+
+      {% if is_manager %}
+        <a href="{% url 'creer_allocation' %}" class="btn btn-warning">
+          + Créer une attribution (Allocation)
+        </a>
+      {% endif %}
     </div>
 
   </form>
