@@ -204,7 +204,6 @@ def create_employee(
     if work_phone:
         vals["work_phone"] = work_phone
 
-
     if job_id:
         vals["job_id"] = int(job_id)
 
