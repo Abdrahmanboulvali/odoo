@@ -8,13 +8,9 @@ from django.db import transaction
 import re
 
 from .models import Profile
-from .odoo_client import create_employee, get_jobs
-from .forms import DemandeCongeManagerForm, DemandeCongeEmployeeForm, AllocationForm, CreateEmployeePortalForm
-
-from django.contrib.auth.decorators import user_passes_test
-
-
 from .odoo_client import (
+    create_employee,
+    get_jobs,
     get_employees,
     get_employee_by_id,
     get_leaves,
@@ -26,9 +22,13 @@ from .odoo_client import (
     get_allocations,
     approve_allocation,
     refuse_allocation,
+    # 🚀 NEW IMPORTS FOR ANALYTICS
+    get_manager_dashboard_data,
+    get_employee_dashboard_data,
 )
+from .forms import DemandeCongeManagerForm, DemandeCongeEmployeeForm, AllocationForm, CreateEmployeePortalForm
 
-
+from django.contrib.auth.decorators import user_passes_test
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash
@@ -59,7 +59,6 @@ def login_view(request):
 
         else:
             messages.error(request, "Nom d'utilisateur ou mot de passe incorrect.")
-
 
     return render(request, "portail/registration/login.html")
 
@@ -150,7 +149,7 @@ def demander_conge(request):
             if "aucune attribution" in str(e).lower():
                 messages.error(
                     request,
-                    "Vous n’avez aucune attribution pour ce type de congé. "
+                    "Vous n'avez aucune attribution pour ce type de congé. "
                     "Veuillez créer une attribution (Allocation) avant de soumettre la demande."
                 )
                 if is_staff:
@@ -240,6 +239,7 @@ def creer_allocation(request):
 
     return render(request, "portail/creer_allocation.html", {"form": form})
 
+
 # ==========================
 # APPROUVER ALLOCATION
 # ==========================
@@ -263,37 +263,88 @@ def refuser_allocation(request, allocation_id):
     messages.warning(request, "Allocation refusée ⚠️")
     return redirect("liste_allocations")
 
+
+# ==========================
+# 🚀 NEW ENHANCED DASHBOARD (MANAGER)
+# ==========================
 @user_passes_test(is_manager)
 @login_required
 def dashboard(request):
+    """
+    Enhanced Manager Dashboard with Analytics
+    Uses the new get_manager_dashboard_data() function
+    """
     prof = request.user.profile
 
     if prof.role == "employee":
         return redirect("employee_home")
 
-    employes = get_employees()
-    leaves = get_leaves()
-    allocations = get_allocations()
+    # 🚀 ONE FUNCTION CALL FOR ALL DATA
+    try:
+        dashboard_data = get_manager_dashboard_data()
+        return render(request, "portail/dashboard.html", dashboard_data)
+    except Exception as e:
+        messages.error(request, f"Erreur lors du chargement du dashboard: {e}")
+        # Fallback to basic data
+        employes = get_employees()
+        leaves = get_leaves()
+        allocations = get_allocations()
 
-    total_employes = len(employes)
+        return render(request, "portail/dashboard.html", {
+            "total_employees": len(employes),
+            "pending_leaves_count": 0,
+            "approved_leaves_count": 0,
+            "pending_allocations_count": 0,
+            "absenteeism_rate": 0,
+            "salary_mass": 0,
+            "recent_leaves": leaves[:5],
+            "recent_allocations": allocations[:5],
+        })
 
-    conges_en_attente = [l for l in leaves if l.get("state") in ["confirm", "validate1"]]
-    conges_approuves = [l for l in leaves if l.get("state") in ["validate", "validated"]]
 
-    allocs_en_attente = [a for a in allocations if a.get("state") in ["draft", "confirm"]]
+# ==========================
+# 🚀 NEW ENHANCED EMPLOYEE HOME
+# ==========================
+@login_required
+def employee_home(request):
+    """
+    Enhanced Employee Dashboard with Personal Analytics
+    Uses the new get_employee_dashboard_data() function
+    """
+    if request.user.is_staff:
+        return redirect("dashboard")
 
-    # derniers enregistrements
-    derniers_conges = sorted(leaves, key=lambda x: x.get("id", 0), reverse=True)[:5]
-    dernieres_allocs = sorted(allocations, key=lambda x: x.get("id", 0), reverse=True)[:5]
+    prof = request.user.profile
+    emp_id = prof.odoo_employee_id
 
-    return render(request, "portail/dashboard.html", {
-        "total_employes": total_employes,
-        "conges_en_attente": len(conges_en_attente),
-        "conges_approuves": len(conges_approuves),
-        "allocs_en_attente": len(allocs_en_attente),
-        "derniers_conges": derniers_conges,
-        "dernieres_allocs": dernieres_allocs,
-    })
+    if not emp_id:
+        messages.warning(request, "Votre compte n'est pas encore lié à un employé Odoo.")
+        return render(request, "portail/employee_home.html", {
+            "employee": None,
+            "hours_this_week": 0,
+            "hours_this_month": 0,
+            "leave_balance": {},
+            "recent_leaves": [],
+        })
+
+    # 🚀 ONE FUNCTION CALL FOR ALL EMPLOYEE DATA
+    try:
+        dashboard_data = get_employee_dashboard_data(emp_id)
+        return render(request, "portail/employee_home.html", dashboard_data)
+    except Exception as e:
+        messages.error(request, f"Erreur lors du chargement de vos données: {e}")
+        # Fallback to basic data
+        leaves = get_leaves()
+        my_leaves = [l for l in leaves if l.get("employee_id") and l["employee_id"][0] == emp_id]
+
+        return render(request, "portail/employee_home.html", {
+            "employee": get_employee_by_id(emp_id),
+            "hours_this_week": 0,
+            "hours_this_month": 0,
+            "leave_balance": {},
+            "recent_leaves": my_leaves[:5],
+        })
+
 
 @login_required
 def force_password_change(request):
@@ -311,7 +362,6 @@ def force_password_change(request):
 
             update_session_auth_hash(request, request.user)
 
-
             prof = request.user.profile
             prof.force_password_change = False
             prof.save()
@@ -322,11 +372,10 @@ def force_password_change(request):
     return render(request, "portail/force_password_change.html")
 
 
-
-
 def _slug_username(name: str) -> str:
     base = re.sub(r"[^a-zA-Z0-9._-]+", "", (name or "").strip().lower())
     return base or "user"
+
 
 @staff_member_required
 @transaction.atomic
@@ -384,29 +433,9 @@ def creer_employe_et_compte(request):
 
     return render(request, "portail/creer_employe_compte.html", {"form": form})
 
-@login_required
-def employee_home(request):
-    prof = request.user.profile
-    emp_id = prof.odoo_employee_id
-
-
-    leaves = [l for l in get_leaves() if (l.get("employee_id") and l["employee_id"][0] == emp_id)]
-
-    return render(request, "portail/employee_home.html", {
-        "leaves": leaves,
-    })
-
-@login_required
-def employee_home(request):
-
-    if request.user.is_staff:
-        return redirect("dashboard")
-    return render(request, "portail/employee_home.html")
-
 
 @login_required
 def mes_conges(request):
-
     prof = request.user.profile
     emp_id = prof.odoo_employee_id
 

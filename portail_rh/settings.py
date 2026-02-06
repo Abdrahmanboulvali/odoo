@@ -58,10 +58,11 @@ ROOT_URLCONF = 'portail_rh.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'], # Optional: if you have a global templates folder
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -70,18 +71,22 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'portail_rh.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'odoo_db',      # The name of the database you created in pgAdmin
+        'USER': 'root',          # Usually 'postgres'
+        'PASSWORD': '1234', # Your PostgreSQL password
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
+
+WSGI_APPLICATION = 'portail_rh.wsgi.application'
+
+
+
 
 
 # Password validation

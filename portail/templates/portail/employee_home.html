@@ -1,15 +1,348 @@
 {% extends "portail/base.html" %}
 {% block title %}Espace Employé{% endblock %}
 
-{% block content %}
-<div class="card p-4">
-  <h3 class="fw-bold mb-2">Espace Employé</h3>
-  <p class="text-muted mb-4">Bienvenue {{ request.user.username }}</p>
+{% block extra_css %}
+<style>
+  .welcome-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: 0;
+  }
+  .welcome-card .display-4 {
+    font-weight: 800;
+  }
 
-  <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-primary" href="{% url 'demander_conge' %}">Demander un congé</a>
-    <a class="btn btn-outline-primary" href="{% url 'mes_conges' %}">Mes congés</a>
-    <a class="btn btn-outline-secondary" href="{% url 'force_password_change' %}">Changer mot de passe</a>
+  .hours-card {
+    border-left: 5px solid #3f51b5;
+    transition: all 0.3s ease;
+  }
+  .hours-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.1);
+  }
+  .hours-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #3f51b5;
+  }
+
+  .leave-balance-item {
+    padding: 15px;
+    border-radius: 12px;
+    background: #f8f9fa;
+    margin-bottom: 15px;
+    border-left: 4px solid #3f51b5;
+  }
+  .leave-balance-item .leave-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .leave-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+  }
+  .leave-stats .stat {
+    text-align: center;
+  }
+  .leave-stats .stat-label {
+    color: #666;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .leave-stats .stat-value {
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+
+  .progress-custom {
+    height: 25px;
+    border-radius: 8px;
+    background: #e9ecef;
+  }
+  .progress-custom .progress-bar {
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .action-btn {
+    padding: 12px 24px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,.15);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <!-- Welcome Card -->
+  <div class="card welcome-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-1">Bienvenue,</h5>
+        {% if employee %}
+          <h2 class="display-4 mb-0">{{ employee.name }}</h2>
+          {% if employee.job_title %}
+            <div class="mt-2 opacity-75">{{ employee.job_title }}</div>
+          {% endif %}
+        {% else %}
+          <h2 class="display-4 mb-0">{{ request.user.username }}</h2>
+        {% endif %}
+      </div>
+      <div class="text-end">
+        <i class="bi bi-person-circle" style="font-size: 5rem; opacity: 0.3;"></i>
+      </div>
+    </div>
   </div>
+
+  <!-- Attendance Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card hours-card p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Heures Cette Semaine</div>
+            <div class="hours-value">{{ hours_this_week|floatformat:1 }}h</div>
+          </div>
+          <i class="bi bi-calendar-week text-primary" style="font-size: 2.5rem; opacity: 0.2;"></i>
+        </div>
+
+        <div class="progress progress-custom mb-2">
+          {% widthratio hours_this_week 40 100 as week_percentage %}
+          <div class="progress-bar bg-primary"
+               role="progressbar"
+               style="width: {{ week_percentage }}%"
+               aria-valuenow="{{ week_percentage }}"
+               aria-valuemin="0"
+               aria-valuemax="100">
+            {{ week_percentage }}% de 40h
+          </div>
+        </div>
+        <div class="small text-muted">
+          {% if hours_this_week >= 40 %}
+            ✅ Objectif hebdomadaire atteint!
+          {% else %}
+            {% widthratio hours_this_week 1 1 as hours_done %}
+            {% widthratio 40 1 1 as target %}
+            {{ target|add:hours_done|floatformat:0|add:"-"|add:hours_done|floatformat:0 }}h restantes
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card hours-card p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Heures Ce Mois</div>
+            <div class="hours-value">{{ hours_this_month|floatformat:1 }}h</div>
+          </div>
+          <i class="bi bi-calendar-month text-success" style="font-size: 2.5rem; opacity: 0.2;"></i>
+        </div>
+
+        <div class="progress progress-custom mb-2">
+          {% widthratio hours_this_month 160 100 as month_percentage %}
+          <div class="progress-bar bg-success"
+               role="progressbar"
+               style="width: {% if month_percentage > 100 %}100{% else %}{{ month_percentage }}{% endif %}%"
+               aria-valuenow="{{ month_percentage }}"
+               aria-valuemin="0"
+               aria-valuemax="100">
+            {{ month_percentage }}% de 160h
+          </div>
+        </div>
+        <div class="small text-muted">
+          {% if hours_this_month > 0 %}
+            {% widthratio hours_this_month 22 1 as avg_per_day %}
+            Moyenne: {{ avg_per_day|floatformat:1 }}h/jour
+          {% else %}
+            Aucune donnée ce mois
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leave Balance Section -->
+  <div class="card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0">
+        <i class="bi bi-calendar-check text-primary"></i> Soldes de Congés
+      </h4>
+      <span class="badge bg-primary px-3 py-2">
+        {{ total_leave_types|default:0 }} type{% if total_leave_types > 1 %}s{% endif %}
+      </span>
+    </div>
+
+    {% if leave_balance %}
+      <div class="row g-3">
+        {% for type_id, balance in leave_balance.items %}
+        <div class="col-lg-6">
+          <div class="leave-balance-item">
+            <div class="leave-name">{{ balance.name }}</div>
+
+            <div class="leave-stats mb-3">
+              <div class="stat">
+                <div class="stat-label">Alloué</div>
+                <div class="stat-value text-primary">{{ balance.allocated|floatformat:0 }}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Pris</div>
+                <div class="stat-value text-danger">{{ balance.taken|floatformat:0 }}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Restant</div>
+                <div class="stat-value text-success">{{ balance.remaining|floatformat:0 }}</div>
+              </div>
+            </div>
+
+            <div class="progress progress-custom">
+              {% if balance.allocated > 0 %}
+                {% widthratio balance.taken balance.allocated 100 as taken_percent %}
+                {% widthratio balance.remaining balance.allocated 100 as remaining_percent %}
+
+                <div class="progress-bar bg-danger"
+                     style="width: {{ taken_percent }}%"
+                     title="Utilisé: {{ balance.taken }} jours">
+                  {% if taken_percent > 15 %}{{ taken_percent }}%{% endif %}
+                </div>
+                <div class="progress-bar bg-success"
+                     style="width: {{ remaining_percent }}%"
+                     title="Disponible: {{ balance.remaining }} jours">
+                  {% if remaining_percent > 15 %}{{ remaining_percent }}%{% endif %}
+                </div>
+              {% else %}
+                <div class="progress-bar bg-secondary" style="width: 100%">
+                  Aucune allocation
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-info-circle me-2" style="font-size: 1.5rem;"></i>
+        <div>
+          Vous n'avez pas encore d'allocations de congés. Contactez votre manager pour en obtenir.
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Leaves Section -->
+  <div class="card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold mb-0">
+        <i class="bi bi-clock-history text-primary"></i> Mes Dernières Demandes
+      </h4>
+      <a href="{% url 'mes_conges' %}" class="btn btn-sm btn-outline-primary">
+        Voir tout <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+
+    {% if recent_leaves %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Type</th>
+            <th>Du</th>
+            <th>Au</th>
+            <th>État</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for leave in recent_leaves %}
+          <tr>
+            <td class="fw-semibold">
+              {% if leave.holiday_status_id %}{{ leave.holiday_status_id.1 }}{% else %}—{% endif %}
+            </td>
+            <td>{{ leave.request_date_from|default:"—" }}</td>
+            <td>{{ leave.request_date_to|default:"—" }}</td>
+            <td>
+              {% if leave.state == "draft" %}
+                <span class="badge bg-secondary">Brouillon</span>
+              {% elif leave.state == "confirm" or leave.state == "validate1" %}
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-hourglass-split"></i> En attente
+                </span>
+              {% elif leave.state == "validate" or leave.state == "validated" %}
+                <span class="badge bg-success">
+                  <i class="bi bi-check-circle"></i> Approuvé
+                </span>
+              {% elif leave.state == "refuse" %}
+                <span class="badge bg-danger">
+                  <i class="bi bi-x-circle"></i> Refusé
+                </span>
+              {% else %}
+                <span class="badge bg-dark">{{ leave.state }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-light d-flex align-items-center">
+      <i class="bi bi-inbox me-2" style="font-size: 1.5rem;"></i>
+      <div>
+        Aucune demande de congé pour le moment.
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card p-4">
+    <h5 class="fw-bold mb-3">
+      <i class="bi bi-lightning-charge text-warning"></i> Actions Rapides
+    </h5>
+    <div class="d-flex gap-3 flex-wrap">
+      <a class="btn btn-primary action-btn" href="{% url 'demander_conge' %}">
+        <i class="bi bi-calendar-plus"></i> Demander un Congé
+      </a>
+      <a class="btn btn-outline-primary action-btn" href="{% url 'mes_conges' %}">
+        <i class="bi bi-list-ul"></i> Tous Mes Congés
+      </a>
+      <a class="btn btn-outline-secondary action-btn" href="{% url 'force_password_change' %}">
+        <i class="bi bi-key"></i> Changer Mot de Passe
+      </a>
+    </div>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<script>
+// Add smooth animations on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate cards on load
+  const cards = document.querySelectorAll('.card');
+  cards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      card.style.transition = 'all 0.5s ease';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 100);
+  });
+});
+</script>
 {% endblock %}

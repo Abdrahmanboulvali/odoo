@@ -1,109 +1,429 @@
 {% extends "portail/base.html" %}
 {% block title %}Dashboard RH{% endblock %}
 
+{% block extra_css %}
+<style>
+  .kpi-card {
+    border-left: 5px solid #3f51b5;
+    transition: all 0.3s ease;
+    min-height: 130px;
+  }
+  .kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0,0,0,.12);
+  }
+  .kpi-card .kpi-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1;
+    margin: 10px 0;
+  }
+  .kpi-card .kpi-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    color: #666;
+  }
+  .kpi-card.warning { border-left-color: #ffc107; }
+  .kpi-card.danger { border-left-color: #dc3545; }
+  .kpi-card.success { border-left-color: #28a745; }
+  .kpi-card.info { border-left-color: #17a2b8; }
+
+  .chart-container {
+    position: relative;
+    height: 300px;
+    margin: 20px 0;
+  }
+
+  .stat-detail {
+    border-left: 3px solid #e9ecef;
+    padding-left: 15px;
+    margin-bottom: 15px;
+  }
+  .stat-detail .stat-label {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 600;
+  }
+  .stat-detail .stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #333;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
 
-  <div class="mb-3">
-    <h3 class="fw-bold mb-0">Dashboard RH</h3>
-    <div class="text-muted">Vue globale des ressources humaines (Odoo RPC)</div>
+  <div class="mb-4">
+    <h3 class="fw-bold mb-0">Dashboard RH Analytique</h3>
+    <div class="text-muted">Analyse complète des ressources humaines</div>
   </div>
 
-  <!-- KPI Cards -->
+  <!-- 🚀 KPI Cards Row -->
   <div class="row g-3 mb-4">
     <div class="col-md-3">
-      <div class="card shadow-sm p-3">
-        <div class="text-muted">Employés</div>
-        <div class="fs-3 fw-bold">{{ total_employes }}</div>
+      <div class="card kpi-card p-3">
+        <div class="kpi-label">Total Employés</div>
+        <div class="kpi-value text-primary">{{ total_employees }}</div>
+        <div class="text-muted small">Effectif total</div>
       </div>
     </div>
 
     <div class="col-md-3">
-      <div class="card shadow-sm p-3">
-        <div class="text-muted">Congés en attente</div>
-        <div class="fs-3 fw-bold text-warning">{{ conges_en_attente }}</div>
+      <div class="card kpi-card warning p-3">
+        <div class="kpi-label">Congés en Attente</div>
+        <div class="kpi-value text-warning">{{ pending_leaves_count }}</div>
+        <div class="text-muted small">À valider</div>
       </div>
     </div>
 
     <div class="col-md-3">
-      <div class="card shadow-sm p-3">
-        <div class="text-muted">Congés approuvés</div>
-        <div class="fs-3 fw-bold text-success">{{ conges_approuves }}</div>
+      <div class="card kpi-card danger p-3">
+        <div class="kpi-label">Taux d'Absentéisme</div>
+        <div class="kpi-value text-danger">{{ absenteeism_rate|floatformat:1 }}%</div>
+        <div class="text-muted small">Ce mois</div>
       </div>
     </div>
 
     <div class="col-md-3">
-      <div class="card shadow-sm p-3">
-        <div class="text-muted">Allocations en attente</div>
-        <div class="fs-3 fw-bold text-primary">{{ allocs_en_attente }}</div>
+      <div class="card kpi-card success p-3">
+        <div class="kpi-label">Masse Salariale</div>
+        <div class="kpi-value text-success">{{ salary_mass|floatformat:0 }}€</div>
+        <div class="text-muted small">Mensuelle</div>
       </div>
     </div>
   </div>
 
-  <!-- Tables -->
-  <div class="row g-3">
+  <!-- 🚀 Charts and Analytics Row -->
+  <div class="row g-3 mb-4">
+
+    <!-- Salary Evolution Chart -->
     <div class="col-lg-6">
-      <div class="card p-3">
-        <h5 class="fw-bold">Dernières demandes de congés</h5>
+      <div class="card p-4">
+        <h5 class="fw-bold mb-3">
+          <i class="bi bi-graph-up"></i> Évolution Masse Salariale (6 mois)
+        </h5>
+        <div class="chart-container">
+          <canvas id="salaryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Absenteeism Details -->
+    <div class="col-lg-6">
+      <div class="card p-4">
+        <h5 class="fw-bold mb-3">
+          <i class="bi bi-calendar-x"></i> Analyse de l'Absentéisme
+        </h5>
+
+        {% if absenteeism_details %}
+        <div class="mb-4">
+          <div class="progress" style="height: 35px;">
+            {% widthratio absenteeism_details.actual_hours absenteeism_details.expected_hours 100 as present_percent %}
+            {% widthratio absenteeism_details.absent_hours absenteeism_details.expected_hours 100 as absent_percent %}
+
+            <div class="progress-bar bg-success"
+                 style="width: {{ present_percent }}%"
+                 role="progressbar">
+              <strong>Présent: {{ absenteeism_details.actual_hours|floatformat:1 }}h</strong>
+            </div>
+            <div class="progress-bar bg-danger"
+                 style="width: {{ absent_percent }}%"
+                 role="progressbar">
+              <strong>Absent: {{ absenteeism_details.absent_hours|floatformat:1 }}h</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="stat-detail">
+              <div class="stat-label">Heures Attendues</div>
+              <div class="stat-value">{{ absenteeism_details.expected_hours|floatformat:0 }}h</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-detail">
+              <div class="stat-label">Heures Travaillées</div>
+              <div class="stat-value text-success">{{ absenteeism_details.actual_hours|floatformat:0 }}h</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-detail">
+              <div class="stat-label">Heures Perdues</div>
+              <div class="stat-value text-danger">{{ absenteeism_details.absent_hours|floatformat:0 }}h</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-detail">
+              <div class="stat-label">Période</div>
+              <div class="stat-value">{{ absenteeism_details.period_days }} jours</div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+          Pas de données d'absentéisme disponibles
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 🚀 Salary Details Card -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-4">
+      <div class="card p-4">
+        <h5 class="fw-bold mb-3">
+          <i class="bi bi-cash-stack"></i> Détails Masse Salariale
+        </h5>
+
+        {% if salary_details %}
+        <div class="stat-detail">
+          <div class="stat-label">Total Mensuel</div>
+          <div class="stat-value text-success">{{ salary_details.total_monthly_wage|floatformat:2 }}€</div>
+        </div>
+
+        <div class="stat-detail">
+          <div class="stat-label">Nombre d'Employés</div>
+          <div class="stat-value text-primary">{{ salary_details.employee_count }}</div>
+        </div>
+
+        <div class="stat-detail">
+          <div class="stat-label">Salaire Moyen</div>
+          <div class="stat-value text-info">{{ salary_details.average_wage|floatformat:2 }}€</div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+          Pas de données salariales disponibles
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Recent Leaves -->
+    <div class="col-lg-4">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">
+            <i class="bi bi-calendar-event"></i> Dernières Demandes
+          </h5>
+          <a href="{% url 'liste_conges' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+        </div>
+
         <div class="table-responsive">
-          <table class="table table-sm table-striped align-middle">
+          <table class="table table-sm table-hover align-middle">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Employé</th>
                 <th>Type</th>
                 <th>État</th>
               </tr>
             </thead>
             <tbody>
-              {% for l in derniers_conges %}
+              {% for l in recent_leaves %}
               <tr>
-                <td>{{ l.id }}</td>
-                <td>{% if l.employee_id %}{{ l.employee_id.1 }}{% endif %}</td>
-                <td>{% if l.holiday_status_id %}{{ l.holiday_status_id.1 }}{% endif %}</td>
-                <td><span class="badge bg-secondary">{{ l.state }}</span></td>
+                <td class="small">
+                  {% if l.employee_id %}{{ l.employee_id.1|truncatewords:2 }}{% else %}—{% endif %}
+                </td>
+                <td class="small">
+                  {% if l.holiday_status_id %}{{ l.holiday_status_id.1|truncatewords:2 }}{% else %}—{% endif %}
+                </td>
+                <td>
+                  {% if l.state == "draft" %}
+                    <span class="badge bg-secondary">Brouillon</span>
+                  {% elif l.state == "confirm" or l.state == "validate1" %}
+                    <span class="badge bg-warning text-dark">En attente</span>
+                  {% elif l.state == "validate" or l.state == "validated" %}
+                    <span class="badge bg-success">Validé</span>
+                  {% elif l.state == "refuse" %}
+                    <span class="badge bg-danger">Refusé</span>
+                  {% else %}
+                    <span class="badge bg-dark">{{ l.state }}</span>
+                  {% endif %}
+                </td>
               </tr>
               {% empty %}
-              <tr><td colspan="4" class="text-muted text-center">Aucune donnée</td></tr>
+              <tr>
+                <td colspan="3" class="text-muted text-center small">Aucune donnée</td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        <a href="/conges/" class="btn btn-sm btn-outline-dark mt-2">Voir tout</a>
       </div>
     </div>
 
-    <div class="col-lg-6">
-      <div class="card p-3">
-        <h5 class="fw-bold">Dernières allocations</h5>
+    <!-- Recent Allocations -->
+    <div class="col-lg-4">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">
+            <i class="bi bi-gift"></i> Dernières Allocations
+          </h5>
+          <a href="{% url 'liste_allocations' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+        </div>
+
         <div class="table-responsive">
-          <table class="table table-sm table-striped align-middle">
+          <table class="table table-sm table-hover align-middle">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Employé</th>
                 <th>Type</th>
                 <th>Jours</th>
               </tr>
             </thead>
             <tbody>
-              {% for a in dernieres_allocs %}
+              {% for a in recent_allocations %}
               <tr>
-                <td>{{ a.id }}</td>
-                <td>{% if a.employee_id %}{{ a.employee_id.1 }}{% endif %}</td>
-                <td>{% if a.holiday_status_id %}{{ a.holiday_status_id.1 }}{% endif %}</td>
-                <td>{{ a.number_of_days }}</td>
+                <td class="small">
+                  {% if a.employee_id %}{{ a.employee_id.1|truncatewords:2 }}{% else %}—{% endif %}
+                </td>
+                <td class="small">
+                  {% if a.holiday_status_id %}{{ a.holiday_status_id.1|truncatewords:2 }}{% else %}—{% endif %}
+                </td>
+                <td class="fw-bold">{{ a.number_of_days|floatformat:0 }}</td>
               </tr>
               {% empty %}
-              <tr><td colspan="4" class="text-muted text-center">Aucune donnée</td></tr>
+              <tr>
+                <td colspan="3" class="text-muted text-center small">Aucune donnée</td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        <a href="/allocations/" class="btn btn-sm btn-outline-dark mt-2">Voir tout</a>
       </div>
+    </div>
+
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card p-4">
+    <h5 class="fw-bold mb-3">Actions Rapides</h5>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'liste_employes' %}" class="btn btn-outline-primary">
+        <i class="bi bi-people"></i> Voir Employés
+      </a>
+      <a href="{% url 'creer_employe_et_compte' %}" class="btn btn-outline-success">
+        <i class="bi bi-person-plus"></i> Créer Employé
+      </a>
+      <a href="{% url 'demander_conge' %}" class="btn btn-outline-warning">
+        <i class="bi bi-calendar-plus"></i> Nouvelle Demande
+      </a>
+      <a href="{% url 'creer_allocation' %}" class="btn btn-outline-info">
+        <i class="bi bi-gift"></i> Nouvelle Allocation
+      </a>
     </div>
   </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<script>
+// 🚀 Salary Evolution Chart
+document.addEventListener('DOMContentLoaded', function() {
+  const ctx = document.getElementById('salaryChart');
+
+  if (ctx) {
+    {% if salary_evolution %}
+    const salaryChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [
+          {% for item in salary_evolution %}
+            '{{ item.month }}'{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ],
+        datasets: [{
+          label: 'Masse Salariale (€)',
+          data: [
+            {% for item in salary_evolution %}
+              {{ item.total_wage|default:0 }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          ],
+          borderColor: '#3f51b5',
+          backgroundColor: 'rgba(63, 81, 181, 0.1)',
+          tension: 0.4,
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#3f51b5',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              font: {
+                size: 13,
+                weight: '600'
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            padding: 12,
+            titleFont: {
+              size: 14,
+              weight: '700'
+            },
+            bodyFont: {
+              size: 13
+            },
+            callbacks: {
+              label: function(context) {
+                return 'Masse salariale: ' + context.parsed.y.toLocaleString('fr-FR') + '€';
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString('fr-FR') + '€';
+              },
+              font: {
+                size: 11
+              }
+            },
+            grid: {
+              color: 'rgba(0,0,0,0.05)'
+            }
+          },
+          x: {
+            ticks: {
+              font: {
+                size: 11
+              }
+            },
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+    {% endif %}
+  }
+});
+</script>
 {% endblock %}
